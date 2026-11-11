@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090b10"><title>Luxury Cyber Browser</title>
+<style>
+:root{color-scheme:dark;--bg:#080a0e;--panel:#111720;--line:#293442;--silver:#d7e1eb;--muted:#8391a0;--blue:#9bb6d0}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#edf2f8;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+.shell{height:100dvh;display:flex;flex-direction:column;background:radial-gradient(ellipse at 50% -20%,#24334455,transparent 55%),var(--bg)}
+.top{height:62px;display:flex;align-items:center;gap:13px;padding:0 18px;border-bottom:1px solid var(--line);background:#0d1118}
+.logo{height:34px;width:34px;border:1px solid #73869a;border-radius:10px;display:grid;place-items:center;color:var(--silver);font-size:19px}
+.brand{font-size:13px;font-weight:700;letter-spacing:.13em}.sub{font-size:9px;color:var(--muted);letter-spacing:.18em;margin-top:3px}
+.actions{margin-left:auto;display:flex;gap:8px}.icon{width:35px;height:35px;border:1px solid var(--line);border-radius:10px;background:#121923;color:#d7e1eb;font-size:15px;cursor:pointer}
+.toolbar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line);background:#0c1016}
+.nav{display:flex;gap:5px}.nav button{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:#121923;color:#d5dfeb;font-size:16px;cursor:pointer}
+.address{height:38px;flex:1;min-width:0;border:1px solid #354354;border-radius:11px;background:#080c12;color:#dce6f0;padding:0 14px;font-size:13px;outline:none}
+.address:focus{border-color:#8ea9c2}.go{height:38px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(120deg,#dce6ef,#8da8c2);color:#101722;font-weight:700;cursor:pointer}
+.tabs{height:39px;display:flex;align-items:center;padding:0 14px;gap:8px;border-bottom:1px solid var(--line);background:#0d1118}
+.tab{height:28px;padding:0 12px;display:flex;align-items:center;gap:8px;border:1px solid #34404d;border-radius:8px;background:#151d27;color:#e4ebf3;font-size:11px}
+.status{margin-left:auto;color:#8493a2;font-size:10px;letter-spacing:.1em;display:flex;align-items:center;gap:7px}.dot{height:6px;width:6px;border-radius:50%;background:#9db8d2;box-shadow:0 0 10px #9db8d288}
+.stage{position:relative;flex:1;min-height:0;background:#080a0e}.stage iframe{width:100%;height:100%;border:0;background:#080a0e}
+.bottom{height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-top:1px solid var(--line);font-size:9px;letter-spacing:.12em;color:#6f7d8b;background:#0c1016}
+button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:560px){.top{height:54px;padding:0 11px}.brand{font-size:11px}.sub{font-size:8px}.actions .icon:nth-child(2){display:none}.toolbar{padding:8px;gap:5px}.nav button{width:31px;height:34px}.address{padding:0 9px;font-size:12px}.go{padding:0 12px}.tabs{padding:0 9px}.status{font-size:8px}.bottom{font-size:8px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top"><div class="logo">◈</div><div><div class="brand">LUXURY CYBER</div><div class="sub">PRIVATE BROWSER ENVIRONMENT</div></div><div class="actions"><button class="icon" id="bookmark" title="Bookmark current page">☆</button><button class="icon" id="fullscreen" title="Fullscreen">⛶</button><form method="post" action="/logout"><button class="icon" title="Lock session" type="submit">⌑</button></form></div></header>
+<div class="toolbar"><div class="nav"><button id="back" title="Back">‹</button><button id="forward" title="Forward">›</button><button id="reload" title="Refresh">↻</button></div><input class="address" id="address" type="text" value="https://www.google.com" autocomplete="off" spellcheck="false" aria-label="Address bar"><button class="go" id="go">GO</button></div>
+<div class="tabs"><div class="tab"><span>◈</span><span>Private browsing session</span></div><div class="status"><span class="dot"></span> SESSION ACTIVE</div></div>
+<main class="stage"><iframe id="browser" src="/novnc/vnc.html?autoconnect=1&resize=scale&path=websockify&show_dot=true" allow="clipboard-read; clipboard-write; fullscreen" title="Remote Chromium browser"></iframe></main>
+<footer class="bottom"><span>LOCAL PROFILE · REMOTE CHROMIUM</span><span>SECURE GATEWAY</span></footer>
+</div>
+<script>
+const frame=document.getElementById("browser"), address=document.getElementById("address");
+function send(command,value){frame.contentWindow.postMessage({type:"luxury-browser",command,value},"*")}
+function navigate(){let value=address.value.trim();if(!value)return;if(!/^https?:\/\//i.test(value)){value=/^[\w-]+(\.[\w-]+)+/.test(value)?"https://"+value:"https://www.google.com/search?q="+encodeURIComponent(value)}send("navigate",value)}
+document.getElementById("go").addEventListener("click",navigate);
+address.addEventListener("keydown",e=>{if(e.key==="Enter")navigate()});
+document.getElementById("back").onclick=()=>send("key","Alt_L+Left");
+document.getElementById("forward").onclick=()=>send("key","Alt_L+Right");
+document.getElementById("reload").onclick=()=>send("key","Ctrl_L+r");
+document.getElementById("bookmark").onclick=()=>send("key","Ctrl_L+d");
+document.getElementById("fullscreen").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
+window.addEventListener("message",e=>{if(e.data?.type==="luxury-browser-address"&&typeof e.data.value==="string")address.value=e.data.value});
+</script>
+</body></html>
