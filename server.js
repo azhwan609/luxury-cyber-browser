@@ -46,6 +46,58 @@ button{width:100%;padding:15px;border:0;border-radius:12px;background:linear-gra
 </style></head><body><main class="panel"><div class="mark">◈</div><div class="kicker">Private session gateway</div><h1 class="title">Luxury Cyber Browser</h1><p class="muted">A private remote browsing workspace. Enter your access code to continue.</p>
 <form method="post" action="/login"><input type="hidden" name="csrf" value="${csrf}"><input name="code" type="password" autocomplete="current-password" placeholder="Access code" required autofocus><div class="error">${error}</div><button type="submit">Unlock workspace</button></form><div class="foot">ENCRYPTED SESSION · PRIVATE ACCESS</div></main></body></html>`;
 
+
+async function getActivePage() {
+  const response = await fetch("http://127.0.0.1:9222/json");
+  if (!response.ok) throw new Error("Chromium debugging endpoint unavailable");
+  const pages = await response.json();
+  const page = pages.find(item => item.type === "page" && item.webSocketDebuggerUrl);
+  if (!page) throw new Error("No active browser tab");
+  return page.webSocketDebuggerUrl;
+}
+async function cdp(method, params = {}) {
+  const endpoint = await getActivePage();
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(endpoint);
+    const timer = setTimeout(() => { ws.close(); reject(new Error("Chromium command timed out")); }, 5000);
+    ws.on("open", () => ws.send(JSON.stringify({ id: 1, method, params })));
+    ws.on("message", raw => {
+      let message;
+      try { message = JSON.parse(raw.toString()); } catch { return; }
+      if (message.id !== 1) return;
+      clearTimeout(timer); ws.close();
+      if (message.error) reject(new Error(message.error.message));
+      else resolve(message.result || {});
+    });
+    ws.on("error", error => { clearTimeout(timer); reject(error); });
+  });
+}
+app.post("/api/browser/:action", requireAuth, async (req, res) => {
+  try {
+    const action = req.params.action;
+    if (action === "navigate") {
+      const url = req.body.url;
+      if (typeof url !== "string" || url.length > 2048) return res.status(400).json({ error: "Invalid URL" });
+      const parsed = new URL(url);
+      if (!["http:", "https:"].includes(parsed.protocol)) return res.status(400).json({ error: "Only HTTP and HTTPS are allowed" });
+      await cdp("Page.navigate", { url: parsed.href });
+    } else if (action === "back") {
+      await cdp("Runtime.evaluate", { expression: "history.back()" });
+    } else if (action === "forward") {
+      await cdp("Runtime.evaluate", { expression: "history.forward()" });
+    } else if (action === "reload") {
+      await cdp("Page.reload", { ignoreCache: true });
+    } else if (action === "bookmark") {
+      await cdp("Runtime.evaluate", { expression: "document.execCommand('bookmark')" });
+    } else {
+      return res.status(404).json({ error: "Unknown browser action" });
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(503).json({ error: error.message });
+  }
+});
+
 app.get("/health", (_req, res) => res.status(200).json({ status: "ok", service: "luxury-cyber-browser" }));
 
 app.get("/login", (req, res) => {
@@ -105,7 +157,7 @@ server.listen(PORT, "0.0.0.0", () => {
   const child = spawn("runuser", ["-u", "browser", "--", "chromium", "--no-sandbox",
     "--disable-dev-shm-usage", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
     "--password-store=basic", "--user-data-dir=" + dataDir, "--start-maximized",
-    "--remote-debugging-port=0", "https://www.google.com"], { env: { ...process.env, DISPLAY: ":99", HOME: "/home/browser" }, stdio: "ignore" });
+    "--remote-debugging-port=9222", "--remote-debugging-address=127.0.0.1", "https://www.google.com"], { env: { ...process.env, DISPLAY: ":99", HOME: "/home/browser" }, stdio: "ignore" });
   child.on("error", err => console.error("Chromium launch failed:", err.message));
   console.log(`Luxury Cyber Browser listening on ${PORT}`);
 });
