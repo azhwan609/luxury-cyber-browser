@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: luxury-cyber-browser
+    runtime: docker
+    plan: 1c-2g
+    region: frankfurt
+    branch: main
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    disk:
+      name: browser-profile
+      mountPath: /data
+      sizeGB: 2
+    envVars:
+      - key: ACCESS_CODE
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: BROWSER_DATA_DIR
+        value: /data/chromium
