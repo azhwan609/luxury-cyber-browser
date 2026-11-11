@@ -33,16 +33,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-o
 <footer class="bottom"><span>LOCAL PROFILE · REMOTE CHROMIUM</span><span>SECURE GATEWAY</span></footer>
 </div>
 <script>
-const frame=document.getElementById("browser"), address=document.getElementById("address");
-function send(command,value){frame.contentWindow.postMessage({type:"luxury-browser",command,value},"*")}
-function navigate(){let value=address.value.trim();if(!value)return;if(!/^https?:\/\//i.test(value)){value=/^[\w-]+(\.[\w-]+)+/.test(value)?"https://"+value:"https://www.google.com/search?q="+encodeURIComponent(value)}send("navigate",value)}
+const address=document.getElementById("address");
+async function act(action,body={}) {
+  const response=await fetch("/api/browser/"+action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!response.ok) throw new Error("Browser action failed");
+}
+async function navigate(){let value=address.value.trim();if(!value)return;if(!/^https?:\\/\\//i.test(value)){value=/^[\\w-]+(\\.[\\w-]+)+/.test(value)?"https://"+value:"https://www.google.com/search?q="+encodeURIComponent(value)}try{await act("navigate",{url:value})}catch(e){address.setCustomValidity(e.message);address.reportValidity()}}
 document.getElementById("go").addEventListener("click",navigate);
 address.addEventListener("keydown",e=>{if(e.key==="Enter")navigate()});
-document.getElementById("back").onclick=()=>send("key","Alt_L+Left");
-document.getElementById("forward").onclick=()=>send("key","Alt_L+Right");
-document.getElementById("reload").onclick=()=>send("key","Ctrl_L+r");
-document.getElementById("bookmark").onclick=()=>send("key","Ctrl_L+d");
+document.getElementById("back").onclick=()=>act("back").catch(()=>{});
+document.getElementById("forward").onclick=()=>act("forward").catch(()=>{});
+document.getElementById("reload").onclick=()=>act("reload").catch(()=>{});
+document.getElementById("bookmark").onclick=()=>act("bookmark").catch(()=>{});
 document.getElementById("fullscreen").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
-window.addEventListener("message",e=>{if(e.data?.type==="luxury-browser-address"&&typeof e.data.value==="string")address.value=e.data.value});
 </script>
 </body></html>
